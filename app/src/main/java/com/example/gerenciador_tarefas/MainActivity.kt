@@ -1,6 +1,5 @@
 package com.example.gerenciador_tarefas
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,16 +9,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.gerenciador_tarefas.ui.theme.Gerenciador_tarefasTheme
+import androidx.navigation.compose.*
+
+data class Tarefa(val nome: String, var concluida: Boolean = false)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,14 +27,81 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Gerenciador_tarefasTheme {
-                MainScreen()
+                MainNavHost()//Criação do gerenciador de nevegação
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(){}
+fun MainNavHost() {
+    val navController = rememberNavController()
+
+    val tarefas = remember { mutableStateListOf<Tarefa>() }
+
+    NavHost(navController = navController, startDestination = "mainScreen") {
+        composable("mainScreen") { MainScreen(tarefas, navController) }
+        composable("addTaskScreen") {
+            AdicionarTarefaScreen(onSave = { task ->
+                // Adiciona a nova tarefa à lista
+                tarefas.add(Tarefa(task))
+                navController.popBackStack() // Volta à tela principal
+            }, onCancel = {
+                navController.popBackStack() // Volta na tela ao cancelar
+            })
+        }
+    }
+}
+
+@Composable
+fun MainScreen(tarefas: MutableList<Tarefa>, navController: NavController) {
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = { navController.navigate("addTaskScreen") }) {
+                Text("+")
+            }
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)) {
+            Text(
+                text = "Gerenciador de Tarefas",
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(16.dp)
+            )
+            // Exibição da lista de tarefas
+            LazyColumn {
+                items(tarefas.size) { index ->
+                    TarefaItem(
+                        tarefa = tarefas[index],
+                        onDelete = { tarefas.removeAt(index) },
+                        onCheckChange = { novoEstado ->
+                            tarefas[index].concluida = novoEstado // Atualiza o estado de conclusão
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TarefaItem(tarefa: Tarefa, onDelete: () -> Unit, onCheckChange: (Boolean) -> Unit) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        // CheckBox
+        Checkbox(checked = tarefa.concluida, onCheckedChange = onCheckChange)
+        // Texto da tarefa
+        Text(text = tarefa.nome, modifier = Modifier.weight(1f).padding(start = 8.dp))
+        // Botão de excluir
+        IconButton(onClick = onDelete) {
+            Icon(imageVector = Icons.Filled.Delete, contentDescription = "Excluir Tarefa")
+        }
+    }
+}
 
 @Composable
 fun AdicionarTarefaScreen(onSave: (String) -> Unit, onCancel: () -> Unit) {
@@ -65,5 +132,13 @@ fun AdicionarTarefaScreen(onSave: (String) -> Unit, onCancel: () -> Unit) {
                 Text("Descartar")
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainScreenPreview() {
+    Gerenciador_tarefasTheme {
+        MainScreen(mutableListOf(), rememberNavController())
     }
 }
