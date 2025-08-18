@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -19,7 +20,7 @@ import androidx.navigation.NavController
 import com.example.gerenciador_tarefas.ui.theme.Gerenciador_tarefasTheme
 import androidx.navigation.compose.*
 
-data class Tarefa(val nome: String, var concluida: Boolean = false)
+data class Tarefa(val nome: String, var descricao: String = "", var concluida: Boolean = false) // Classe Tarefa
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,24 +28,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Gerenciador_tarefasTheme {
-                MainNavHost()//Criação do gerenciador de nevegação
+                MainNavHost() // Criação do gerenciador de navegação
             }
         }
     }
 }
 
 @Composable
+// Gerenciar navegador
 fun MainNavHost() {
-    val navController = rememberNavController()
+    val navController = rememberNavController() // Controlador de navegação
 
-    val tarefas = remember { mutableStateListOf<Tarefa>() }
+    val tarefas = remember { mutableStateListOf<Tarefa>() } // Lista mutável de tarefas
 
     NavHost(navController = navController, startDestination = "mainScreen") {
         composable("mainScreen") { MainScreen(tarefas, navController) }
         composable("addTaskScreen") {
-            AdicionarTarefaScreen(onSave = { task ->
+            AdicionarTarefaScreen(onSave = { task, descricao ->
                 // Adiciona a nova tarefa à lista
-                tarefas.add(Tarefa(task))
+                tarefas.add(Tarefa(task, descricao))
                 navController.popBackStack() // Volta à tela principal
             }, onCancel = {
                 navController.popBackStack() // Volta na tela ao cancelar
@@ -55,6 +57,9 @@ fun MainNavHost() {
 
 @Composable
 fun MainScreen(tarefas: MutableList<Tarefa>, navController: NavController) {
+    var showDescriptionDialog by remember { mutableStateOf(false) }
+    var selectedTaskDescription by remember { mutableStateOf("") }
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { navController.navigate("addTaskScreen") }) {
@@ -78,19 +83,38 @@ fun MainScreen(tarefas: MutableList<Tarefa>, navController: NavController) {
                         onDelete = { tarefas.removeAt(index) },
                         onCheckChange = { novoEstado ->
                             tarefas[index].concluida = novoEstado // Atualiza o estado de conclusão
+                        },
+                        onClick = {
+                            selectedTaskDescription = tarefas[index].descricao
+                            showDescriptionDialog = true // Mostra o diálogo
                         }
                     )
                 }
             }
         }
+
+        // Diálogo para mostrar a descrição da tarefa
+        if (showDescriptionDialog) {
+            AlertDialog(
+                onDismissRequest = { showDescriptionDialog = false },
+                title = { Text("Descrição da Tarefa") },
+                text = { Text(selectedTaskDescription) },
+                confirmButton = {
+                    TextButton(onClick = { showDescriptionDialog = false }) {
+                        Text("Fechar")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun TarefaItem(tarefa: Tarefa, onDelete: () -> Unit, onCheckChange: (Boolean) -> Unit) {
+fun TarefaItem(tarefa: Tarefa, onDelete: () -> Unit, onCheckChange: (Boolean) -> Unit, onClick: () -> Unit) {
     Row(modifier = Modifier
         .fillMaxWidth()
-        .padding(8.dp),
+        .padding(8.dp)
+        .clickable(onClick = onClick), // Evento de clique para mostrar a descrição
         verticalAlignment = Alignment.CenterVertically) {
         // CheckBox
         Checkbox(checked = tarefa.concluida, onCheckedChange = onCheckChange)
@@ -104,7 +128,7 @@ fun TarefaItem(tarefa: Tarefa, onDelete: () -> Unit, onCheckChange: (Boolean) ->
 }
 
 @Composable
-fun AdicionarTarefaScreen(onSave: (String) -> Unit, onCancel: () -> Unit) {
+fun AdicionarTarefaScreen(onSave: (String, String) -> Unit, onCancel: () -> Unit) {
     val titulo = remember { mutableStateOf(TextFieldValue()) }
     val descricao = remember { mutableStateOf(TextFieldValue()) }
 
@@ -122,7 +146,7 @@ fun AdicionarTarefaScreen(onSave: (String) -> Unit, onCancel: () -> Unit) {
         Row {
             Button(onClick = {
                 if (titulo.value.text.isNotEmpty()) {
-                    onSave(titulo.value.text) // Salva a tarefa
+                    onSave(titulo.value.text, descricao.value.text) // Salva a tarefa
                 }
             }) {
                 Text("Salvar")
