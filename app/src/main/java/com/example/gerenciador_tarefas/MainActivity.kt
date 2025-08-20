@@ -20,7 +20,7 @@ import androidx.navigation.NavController
 import com.example.gerenciador_tarefas.ui.theme.Gerenciador_tarefasTheme
 import androidx.navigation.compose.*
 
-data class Tarefa(val nome: String, var descricao: String = "", var concluida: Boolean = false) // Classe Tarefa
+data class Tarefa(val nome: String, var descricao: String = "", var status: Boolean = false) // Classe Tarefa
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +82,7 @@ fun MainScreen(tarefas: MutableList<Tarefa>, navController: NavController) {
                         tarefa = tarefas[index],
                         onDelete = { tarefas.removeAt(index) },
                         onCheckChange = { novoEstado ->
-                            tarefas[index].concluida = novoEstado // Atualiza o estado de conclusão
+                            tarefas[index] = tarefas[index].copy(status = novoEstado)  // Atualiza o estado de conclusão
                         },
                         onClick = {
                             selectedTaskDescription = tarefas[index].descricao
@@ -117,7 +117,7 @@ fun TarefaItem(tarefa: Tarefa, onDelete: () -> Unit, onCheckChange: (Boolean) ->
         .clickable(onClick = onClick), // Evento de clique para mostrar a descrição
         verticalAlignment = Alignment.CenterVertically) {
         // CheckBox
-        Checkbox(checked = tarefa.concluida, onCheckedChange = onCheckChange)
+        Checkbox(checked = tarefa.status, onCheckedChange = onCheckChange)
         // Texto da tarefa
         Text(text = tarefa.nome, modifier = Modifier.weight(1f).padding(start = 8.dp))
         // Botão de excluir
