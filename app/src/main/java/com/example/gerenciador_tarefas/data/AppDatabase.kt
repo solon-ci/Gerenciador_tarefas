@@ -6,7 +6,7 @@ import androidx.room.RoomDatabase
 import android.content.Context
 import com.example.gerenciador_tarefas.models.Tarefa
 
-@Database(entities = [Tarefa::class], version = 1)
+@Database(entities = [Tarefa::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun tarefaDao(): TarefaDao
 
